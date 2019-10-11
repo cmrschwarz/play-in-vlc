@@ -1,0 +1,61 @@
+#!/bin/bash
+set -Eeuo pipefail
+
+# when MUSIC_DIR is set in the environment 
+if  [ ! -z $MUSIC_DIR ] ; then
+    # and the current directory is not inside MUSIC_DIR
+    if [[ ! "$(realpath .)" = "$(realpath $MUSIC_DIR)"* ]]; then    
+        # switch to MUSIC_DIR
+        cd $MUSIC_DIR
+    fi
+fi
+
+# parse cli args
+vlc_args=""
+help_shown=false
+while [ $# -gt 0 ]; do
+    if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+        help_shown=true
+        #display help
+        cat <<________EOF
+play [-a] [FILES] [DIRS] [PATTERNS]
+
+    Play all FILES, in DIRS contained files and files whose relative path
+    from the current directory matches PATTERNS in the VLC Media Player.
+
+    When the environment sets MUSIC_DIR and the current dir is not in it,
+    changes directory to MUSIC_DIR.
+
+    When no args are passed, play everything contained in current directory.
+
+    -h | --help   : show this help
+    -a | --append : instead of playing the songs, append them to the playlist
+________EOF
+        shift
+    elif [ "$1" = "-a" ] || [ "$1" = "--append" ]; then
+        vlc_args="--playlist-enqueue"
+        shift
+    else
+        break
+    fi
+done
+
+music_regex='^.*\.\(mp3\)\|\(opus\)\|(m4a)\|(ogg)$'
+shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc $vlc_args 2>/dev/null &"
+if [ "$#" -eq 0 ] && ! $help_shown; then
+    #play everything in folder
+    find . -type f | bash -c "$shell_cmd"
+else 
+    #play every file, everything in folder and evverything matching pattern
+    cat <(
+        for arg in "$@"; do
+            if [ -d "$arg" ]; then
+                find "$arg" -type f
+            elif [ -f "$arg" ]; then
+                echo "./$arg"
+            else
+                find . -type f | grep -i "$arg"
+            fi
+        done
+    ) | bash -c "$shell_cmd"
+fi
