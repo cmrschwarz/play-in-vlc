@@ -18,13 +18,13 @@ while [ $# -gt 0 ]; do
         help_shown=true
         #display help
         cat <<________EOF
-play [-a] [FILES] [DIRS] [PATTERNS]
+play [-ah] [FILES...] [DIRS...] [PATTERNS...]
 
     Play all FILES, in DIRS contained files and files whose relative path
     from the current directory matches PATTERNS in the VLC Media Player.
 
     When the environment sets MUSIC_DIR and the current dir is not in it,
-    changes directory to MUSIC_DIR.
+    the script changes directory to MUSIC_DIR.
 
     When no args are passed, play everything contained in current directory.
 
