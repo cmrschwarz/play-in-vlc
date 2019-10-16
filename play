@@ -1,10 +1,11 @@
 #!/bin/bash
 set -Eeuo pipefail
 
+dir="$(realpath .)"
 # when MUSIC_DIR is set in the environment 
 if  [ ! -z $MUSIC_DIR ] ; then
     # and the current directory is not inside MUSIC_DIR
-    if [[ ! "$(realpath .)" = "$(realpath $MUSIC_DIR)"* ]]; then    
+    if [[ ! "$dir" = "$(realpath $MUSIC_DIR)"* ]]; then    
         # switch to MUSIC_DIR
         cd $MUSIC_DIR
     fi
@@ -51,6 +52,8 @@ else
         for arg in "$@"; do
             if [ -d "$arg" ]; then
                 find "$arg" -type f
+            elif [ -f "$dir/$arg" ]; then
+                echo "$dir/$arg"
             elif [ -f "$arg" ]; then
                 echo "./$arg"
             else
