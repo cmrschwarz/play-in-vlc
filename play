@@ -14,12 +14,13 @@ fi
 # parse cli args
 vlc_args=""
 help_shown=false
+list_only=false
 while [ $# -gt 0 ]; do
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         help_shown=true
         #display help
         cat <<________EOF
-play [-ah] [FILES...] [DIRS...] [PATTERNS...]
+play [-anh] [FILES...] [DIRS...] [PATTERNS...]
 
     Play all FILES, in DIRS contained files and files whose relative path
     from the current directory matches PATTERNS in the VLC Media Player.
@@ -31,10 +32,14 @@ play [-ah] [FILES...] [DIRS...] [PATTERNS...]
 
     -h | --help   : show this help
     -a | --append : instead of playing the songs, append them to the playlist
+    -n | --dry-run : don't play, just print out the results to stdout
 ________EOF
         shift
     elif [ "$1" = "-a" ] || [ "$1" = "--append" ]; then
         vlc_args="--playlist-enqueue"
+        shift
+    elif [ "$1" = "-n" ] || [ "$1" = "--dry-run" ]; then
+        list_only=true
         shift
     else
         break
@@ -42,7 +47,12 @@ ________EOF
 done
 
 music_regex='^.*\.\(mp3\)\|\(opus\)\|(m4a)\|(ogg)$'
-shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc $vlc_args 2>/dev/null &"
+if $list_only; then
+    shell_cmd="grep '$music_regex'"
+else
+    shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc $vlc_args 2>/dev/null &"
+fi
+
 if [ "$#" -eq 0 ] && ! $help_shown; then
     #play everything in folder
     find . -type f | bash -c "$shell_cmd"
