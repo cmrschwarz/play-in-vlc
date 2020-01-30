@@ -15,12 +15,13 @@ fi
 vlc_args=""
 help_shown=false
 list_only=false
+sorted=false
 while [ $# -gt 0 ]; do
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         help_shown=true
         #display help
         cat <<________EOF
-play [-anh] [FILES...] [DIRS...] [PATTERNS...]
+play [-hans] [FILES...] [DIRS...] [PATTERNS...]
 
     Play all FILES, in DIRS contained files and files whose relative path
     from the current directory matches PATTERNS in the VLC Media Player.
@@ -30,9 +31,10 @@ play [-anh] [FILES...] [DIRS...] [PATTERNS...]
 
     When no args are passed, play everything contained in current directory.
 
-    -h | --help   : show this help
-    -a | --append : instead of playing the songs, append them to the playlist
+    -h | --help    : show this help
+    -a | --append  : instead of playing the songs, append them to the playlist
     -n | --dry-run : don't play, just print out the results to stdout
+    -s | --sort    : play in sorted order (default is random) 
 ________EOF
         shift
     elif [ "$1" = "-a" ] || [ "$1" = "--append" ]; then
@@ -41,6 +43,15 @@ ________EOF
     elif [ "$1" = "-n" ] || [ "$1" = "--dry-run" ]; then
         list_only=true
         shift
+    elif [ "$1" = "-s" ] || [ "$1" = "--sort" ]; then
+        sorted=true
+        shift
+    elif [ "$1" = "--" ]; then
+        shift
+        break
+    elif [ "$1" = "-*" ]; then
+        echo "unknown option '$1'" >&2
+        exit -1
     else
         break
     fi
@@ -52,6 +63,13 @@ if $list_only; then
 else
     shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc $vlc_args 2>/dev/null &"
 fi
+
+if $sorted; then
+    ordering_cmd="sort -V"
+else
+    ordering_cmd="shuf"
+fi
+
 
 if [ "$#" -eq 0 ] && ! $help_shown; then
     #play everything in folder
@@ -67,8 +85,8 @@ else
             elif [ -f "$arg" ]; then
                 echo "./$arg"
             else
-                find . -type f | grep -i "$arg"
+                find . -type f | grep -i -- "$arg"
             fi
         done
-    ) | bash -c "$shell_cmd"
+    ) | bash -c "$ordering_cmd | $shell_cmd"
 fi
