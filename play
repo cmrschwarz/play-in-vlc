@@ -49,8 +49,8 @@ ________EOF
     elif [ "$1" = "--" ]; then
         shift
         break
-    elif [ "$1" = "-*" ]; then
-        echo "unknown option '$1'" >&2
+    elif [[ "$1" == -* ]]; then
+        echo "unknown option '$1'"
         exit -1
     else
         break
@@ -75,7 +75,7 @@ if [ "$#" -eq 0 ] && ! $help_shown; then
     #play everything in folder
     find . -type f | bash -c "$shell_cmd"
 else 
-    #play every file, everything in folder and evverything matching pattern
+    #play every file, everything in folder and everything matching pattern
     cat <(
         for arg in "$@"; do
             if [ -d "$arg" ]; then
