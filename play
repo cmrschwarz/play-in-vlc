@@ -33,7 +33,7 @@ while [ ${#args[@]} -gt 0 ]; do
         help_shown=true
         #display help
         cat <<________EOF
-play [-hans] [FILES...] [DIRS...] [PATTERNS...]
+play [-hansc] [FILES...] [DIRS...] [PATTERNS...]
 
     Play all FILES, in DIRS contained files and files whose relative path
     from the current directory matches PATTERNS in the VLC Media Player.
@@ -47,6 +47,7 @@ play [-hans] [FILES...] [DIRS...] [PATTERNS...]
     -a | --append  : instead of playing the songs, append them to the playlist
     -n | --dry-run : don't play, just print out the results to stdout
     -s | --sort    : play in sorted order (default is random) 
+    -c | --clear   : clear the playlist beforehand 
 ________EOF
         shift
     elif [ "$arg" = "-a" ] || [ "$arg" = "--append" ]; then
@@ -55,6 +56,10 @@ ________EOF
         list_only=true
     elif [ "$arg" = "-s" ] || [ "$arg" = "--sort" ]; then
         sorted=true
+    elif [ "$arg" = "-c" ] || [ "$arg" = "--clear" ]; then
+        #without the sleep sometimes vlc doesn't start back up :/
+        #TODO: proper fix for this
+        (killall vlc 2>/dev/null && sleep 0.1) || : 
     elif [ "$arg" = "--" ]; then
         break
     elif [[ "$arg" == -* ]]; then
@@ -65,6 +70,7 @@ ________EOF
     fi
     args=( "${args[@]:1}" )
 done
+
 music_regex='^.*\.\(mp3\)\|\(opus\)\|(m4a)\|(ogg)$'
 if $list_only; then
     shell_cmd="grep '$music_regex'"

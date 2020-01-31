@@ -2,7 +2,7 @@
 Convenient bash script to start playing songs in VLC Media Player
 
 ```
-play [-hans] [FILES...] [DIRS...] [PATTERNS...]
+play [-hansc] [FILES...] [DIRS...] [PATTERNS...]
 
     Play all FILES, in DIRS contained files and files whose relative path
     from the current directory matches PATTERNS in the VLC Media Player.
@@ -16,4 +16,5 @@ play [-hans] [FILES...] [DIRS...] [PATTERNS...]
     -a | --append  : instead of playing the songs, append them to the playlist
     -n | --dry-run : don't play, just print out the results to stdout
     -s | --sort    : play in sorted order (default is random) 
+    -c | --clear   : clear the playlist beforehand 
 ```
