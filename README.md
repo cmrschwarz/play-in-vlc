@@ -2,19 +2,21 @@
 Convenient bash script to start playing songs in VLC Media Player
 
 ```
-play [-hansc] [FILES...] [DIRS...] [PATTERNS...]
+play [-f FILE] [-hansc] [PATTERNS...]
+    Play all PATTERNS in VLC Media Player. 
+    Patterns matching a filename play that file.
+    Patterns matching a directory recursively play all songs in that directory.
+    Any other patterns are interpreted as a regex for a file search.
 
-    Play all FILES, in DIRS contained files and files whose relative path
-    from the current directory matches PATTERNS in the VLC Media Player.
+    When the environment sets MUSIC_DIR, that directory is used for 
+    regex searches and also checked for file / directory maches.
 
-    When the environment sets MUSIC_DIR and the current dir is not in it,
-    the script changes directory to MUSIC_DIR.
-
-    When no args are passed, play everything contained in current directory.
+    Calling play with no PATTERNS / FILE is equivalent to play *.
 
     -h | --help    : show this help
     -a | --append  : instead of playing the songs, append them to the playlist
     -n | --dry-run : don't play, just print out the results to stdout
     -s | --sort    : play in sorted order (default is random) 
+    -f | --file    : read additional PATTERNS from FILE
     -c | --clear   : clear the playlist beforehand 
 ```

@@ -2,12 +2,15 @@
 set -Eeuo pipefail
 
 dir="$(realpath .)"
-# when MUSIC_DIR is set in the environment 
+music_dir="$dir"
+search_dir="$dir"
+# when MUSIC_DIR is set in the environment ...
 if  [ ! -z $MUSIC_DIR ] ; then
-    # and the current directory is not inside MUSIC_DIR
-    if [[ ! "$dir" = "$(realpath $MUSIC_DIR)"* ]]; then    
-        # switch to MUSIC_DIR
-        cd $MUSIC_DIR
+    music_dir="$MUSIC_DIR"
+    # ... and the current directory is not inside MUSIC_DIR
+    if [[ ! "$dir" = "$(realpath $MUSIC_DIR)"* ]]; then
+        # regex search relative to music dir
+        search_dir="$MUSIC_DIR"
     fi
 fi
 
@@ -15,6 +18,7 @@ fi
 vlc_args=""
 help_shown=false
 list_only=false
+read_paths_from_file=""
 sorted=false
 args=( "$@" )
 while [ ${#args[@]} -gt 0 ]; do
@@ -33,20 +37,22 @@ while [ ${#args[@]} -gt 0 ]; do
         help_shown=true
         #display help
         cat <<________EOF
-play [-hansc] [FILES...] [DIRS...] [PATTERNS...]
+play [-f FILE] [-hansc] [PATTERNS...]
+    Play all PATTERNS in VLC Media Player. 
+    Patterns matching a filename play that file.
+    Patterns matching a directory recursively play all songs in that directory.
+    Any other patterns are interpreted as a regex for a file search.
 
-    Play all FILES, in DIRS contained files and files whose relative path
-    from the current directory matches PATTERNS in the VLC Media Player.
+    When the environment sets MUSIC_DIR, that directory is used for 
+    regex searches and also checked for file / directory maches.
 
-    When the environment sets MUSIC_DIR and the current dir is not in it,
-    the script changes directory to MUSIC_DIR.
-
-    When no args are passed, play everything contained in current directory.
+    Calling play with no PATTERNS / FILE is equivalent to play *.
 
     -h | --help    : show this help
     -a | --append  : instead of playing the songs, append them to the playlist
     -n | --dry-run : don't play, just print out the results to stdout
     -s | --sort    : play in sorted order (default is random) 
+    -f | --file    : read additional PATTERNS from FILE
     -c | --clear   : clear the playlist beforehand 
 ________EOF
         shift
@@ -56,6 +62,18 @@ ________EOF
         list_only=true
     elif [ "$arg" = "-s" ] || [ "$arg" = "--sort" ]; then
         sorted=true
+    elif [ "$arg" = "-f" ] || [ "$arg" = "--sort" ]; then
+        args=( "${args[@]:1}" )
+        f="${args[0]}"
+        if [ "$f" == "-" ]; then
+            f="/dev/stdin"
+        elif [ ! -f "$f" ]; then
+            echo "cannot access file '$f'" 1>&2
+            exit -1
+        fi
+        while read line; do
+            args=( "${args[@]}" "$line" )
+        done < $f
     elif [ "$arg" = "-c" ] || [ "$arg" = "--clear" ]; then
         #without the sleep sometimes vlc doesn't start back up :/
         #TODO: proper fix for this
@@ -73,7 +91,7 @@ done
 
 music_regex='^.*\.\(mp3\)\|\(opus\)\|(m4a)\|(ogg)$'
 if $list_only; then
-    shell_cmd="grep '$music_regex'"
+    shell_cmd="grep '$music_regex' | xargs -d\\\\n -n 1 -I@ realpath --relative-to='.' @"
 else
     shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc $vlc_args 2>/dev/null &"
 fi
@@ -84,22 +102,23 @@ else
     ordering_cmd="shuf"
 fi
 
-
 if [ ${#args[@]} -eq 0 ] && ! $help_shown; then
     #play everything in folder
-    find . -type f | bash -c "$shell_cmd"
+    find "$music_dir" -type f | bash -c "$shell_cmd"
 else 
     #play every file, everything in folder and everything matching pattern
     cat <(
         for arg in "${args[@]}"; do
-            if [ -d "$arg" ]; then
+            if [ -f "$arg" ]; then
+                echo "$arg"
+            elif [ -d "$arg" ]; then
                 find "$arg" -type f
-            elif [ -f "$dir/$arg" ]; then
-                echo "$dir/$arg"
-            elif [ -f "$arg" ]; then
-                echo "./$arg"
+            elif [ -f "$music_dir/$arg" ]; then
+                echo "$music_dir/$arg"
+            elif [ -d "$music_dir/$arg" ]; then
+                find "$music_dir/$arg" -type f
             else
-                find . -type f | grep -i -- "$arg"
+                find "$search_dir" -type f | grep -i -- "$arg"
             fi
         done
     ) | bash -c "$ordering_cmd | $shell_cmd"
