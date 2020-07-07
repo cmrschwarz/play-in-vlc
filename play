@@ -4,20 +4,31 @@ set -Eeuo pipefail
 dir="$(realpath .)"
 music_dir="$dir"
 search_dir="$dir"
-# when MUSIC_DIR is set in the environment ...
-if  [ ! -z $MUSIC_DIR ] ; then
-    music_dir="$MUSIC_DIR"
+# when PLAY_MUSIC_DIR is set in the environment ...
+if  [ -v PLAY_MUSIC_DIR ] ; then
+    music_dir="$PLAY_MUSIC_DIR"
     # ... and the current directory is not inside MUSIC_DIR
-    if [[ ! "$dir" = "$(realpath $MUSIC_DIR)"* ]]; then
+    if [[ ! "$dir" = "$(realpath $music_dir)"* ]]; then
         # regex search relative to music dir
-        search_dir="$MUSIC_DIR"
+        search_dir="$music_dir"
+    fi
+fi
+
+telnet=false
+if [ -v PLAY_VLC_TELNET_PORT ]; then
+    telnet=true
+    telnet_port="$PLAY_VLC_TELNET_PORT"
+    if [ -v PLAY_VLC_TELNET_PW ]; then
+        telnet_pw="$PLAY_VLC_TELNET_PW"
+    else
+        telnet_pw=""
     fi
 fi
 
 # parse cli args
-vlc_args=""
 help_shown=false
 list_only=false
+append=false
 read_paths_from_file=""
 sorted=false
 args=( "$@" )
@@ -57,12 +68,12 @@ play [-f FILE] [-hansc] [PATTERNS...]
 ________EOF
         shift
     elif [ "$arg" = "-a" ] || [ "$arg" = "--append" ]; then
-        vlc_args="--playlist-enqueue"
+        append=true
     elif [ "$arg" = "-n" ] || [ "$arg" = "--dry-run" ]; then
         list_only=true
     elif [ "$arg" = "-s" ] || [ "$arg" = "--sort" ]; then
         sorted=true
-    elif [ "$arg" = "-f" ] || [ "$arg" = "--sort" ]; then
+    elif [ "$arg" = "-f" ] || [ "$arg" = "--file" ]; then
         args=( "${args[@]:1}" )
         f="${args[0]}"
         if [ "$f" == "-" ]; then
@@ -93,7 +104,22 @@ music_regex='^.*\.\(mp3\)\|\(opus\)\|(m4a)\|(ogg)$'
 if $list_only; then
     shell_cmd="grep '$music_regex' | xargs -d\\\\n -n 1 -I@ realpath --relative-to='.' @"
 else
-    shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc $vlc_args 2>/dev/null &"
+    if $telnet; then
+        vlc --one-instance -I qt --extraintf telnet --telnet-host 127.0.0.1 --telnet-port $telnet_port --telnet-password $telnet_pw 2>/dev/null &
+        nc_cmd="nc -q 0 127.0.0.1 $telnet_port >/dev/null"
+        if $append; then
+            shell_cmd="(echo '$telnet_pw' && grep '$music_regex' | sed \"s/.*/enqueue &/\" && printf 'quit\n\n') | $nc_cmd" 
+        else
+            shell_cmd="(echo '$telnet_pw' && grep '$music_regex' | (read first && echo \"add \$first\" && sed \"s/.*/enqueue &/\") && printf 'quit\n\n') | $nc_cmd" 
+        fi
+    else
+        if $append; then
+            shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc --playlist-enque 2>/dev/null"
+        else
+            shell_cmd="grep '$music_regex' | (read first && vlc \"\$first\" 2>/dev/null && xargs -d \\\\n vlc --playlist-enque 2>/dev/null)"
+        fi
+    fi
+
 fi
 
 if $sorted; then
