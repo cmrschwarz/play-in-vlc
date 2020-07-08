@@ -120,7 +120,7 @@ else
         if $append; then
             shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc --playlist-enque 2>/dev/null &"
         else
-            shell_cmd="grep '$music_regex' | (read first && (vlc \"\$first\" 2>/dev/null &) && sleep 0.1 && xargs -d \\\\n vlc --playlist-enque 2>/dev/null &)"
+            shell_cmd="grep '$music_regex' | (read first && xargs -d \\\\n vlc \$first --playlist-enque 2>/dev/null &)"
         fi
     fi
 
