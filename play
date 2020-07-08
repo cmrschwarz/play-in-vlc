@@ -24,7 +24,7 @@ if [ -v PLAY_VLC_TELNET_PORT ]; then
         telnet_pw=""
     fi
 fi
-
+telnet_host=127.0.0.1 #hardcoded for now
 # parse cli args
 help_shown=false
 list_only=false
@@ -105,8 +105,12 @@ if $list_only; then
     shell_cmd="grep '$music_regex' | xargs -d\\\\n -n 1 -I@ realpath --relative-to='.' @"
 else
     if $telnet; then
-        vlc --one-instance -I qt --extraintf telnet --telnet-host 127.0.0.1 --telnet-port $telnet_port --telnet-password $telnet_pw 2>/dev/null &
-        nc_cmd="nc -q 0 127.0.0.1 $telnet_port >/dev/null"
+        #make sure vlc is running
+        vlc --one-instance -I qt --extraintf telnet --telnet-host $telnet_host --telnet-port $telnet_port --telnet-password $telnet_pw 2>/dev/null &
+        #wait for the telnet interface to come alive
+        while ! nc -q 0 $telnet_host $telnet_port  </dev/null >/dev/null; do sleep 0.01; done      
+
+        nc_cmd="nc -q 0 $telnet_host $telnet_port >/dev/null"
         if $append; then
             shell_cmd="(echo '$telnet_pw' && grep '$music_regex' | sed \"s/.*/enqueue &/\" && printf 'quit\n\n') | $nc_cmd" 
         else
@@ -114,9 +118,9 @@ else
         fi
     else
         if $append; then
-            shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc --playlist-enque 2>/dev/null"
+            shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc --playlist-enque 2>/dev/null &"
         else
-            shell_cmd="grep '$music_regex' | (read first && vlc \"\$first\" 2>/dev/null && xargs -d \\\\n vlc --playlist-enque 2>/dev/null)"
+            shell_cmd="grep '$music_regex' | (read first && (vlc \"\$first\" 2>/dev/null &) && sleep 0.1 && xargs -d \\\\n vlc --playlist-enque 2>/dev/null &)"
         fi
     fi
 
