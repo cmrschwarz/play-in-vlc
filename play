@@ -112,15 +112,15 @@ else
 
         nc_cmd="nc -q 0 $telnet_host $telnet_port >/dev/null"
         if $append; then
-            shell_cmd="(echo '$telnet_pw' && grep '$music_regex' | sed \"s/.*/enqueue &/\" && printf 'quit\n\n') | $nc_cmd" 
+            shell_cmd="(echo '$telnet_pw' && sed \"s/.*/enqueue &/\" && printf 'quit\n\n') | $nc_cmd" 
         else
-            shell_cmd="(echo '$telnet_pw' && grep '$music_regex' | (read first && echo \"add \$first\" && sed \"s/.*/enqueue &/\") && printf 'quit\n\n') | $nc_cmd" 
+            shell_cmd="(echo '$telnet_pw' && (read first && echo \"add \$first\" && sed \"s/.*/enqueue &/\") && printf 'quit\n\n') | $nc_cmd" 
         fi
     else
         if $append; then
-            shell_cmd="grep '$music_regex' | xargs -d \\\\n vlc --playlist-enque 2>/dev/null &"
+            shell_cmd="xargs -d \\\\n vlc --playlist-enque 2>/dev/null &"
         else
-            shell_cmd="grep '$music_regex' | (read first && xargs -d \\\\n vlc \$first --playlist-enque 2>/dev/null &)"
+            shell_cmd="(read first && xargs -d \\\\n vlc \$first --playlist-enque 2>/dev/null &)"
         fi
     fi
 
@@ -151,5 +151,5 @@ else
                 find "$search_dir" -type f | grep -i -- "$arg"
             fi
         done
-    ) | bash -c "$ordering_cmd | $shell_cmd"
+    ) | bash -c "$ordering_cmd | grep '$music_regex' | $shell_cmd"
 fi
