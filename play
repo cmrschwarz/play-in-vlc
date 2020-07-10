@@ -1,14 +1,14 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-dir="$(realpath .)"
-music_dir="$dir"
-search_dir="$dir"
+curr_dir="$(realpath .)"
+music_dir="$curr_dir"
+search_dir="$curr_dir"
 # when PLAY_MUSIC_DIR is set in the environment ...
 if  [ -v PLAY_MUSIC_DIR ] ; then
     music_dir="$PLAY_MUSIC_DIR"
     # ... and the current directory is not inside MUSIC_DIR
-    if [[ ! "$dir" = "$(realpath $music_dir)"* ]]; then
+    if [[ ! "$curr_dir" = "$(realpath $music_dir)"* ]]; then
         # regex search relative to music dir
         search_dir="$music_dir"
     fi
@@ -134,15 +134,15 @@ fi
 
 if [ ${#args[@]} -eq 0 ] && ! $help_shown; then
     #play everything in folder
-    find "$music_dir" -type f | bash -c "$shell_cmd"
+    find "$search_dir" -type f | bash -c "$ordering_cmd | grep '$music_regex' | $shell_cmd"
 else 
     #play every file, everything in folder and everything matching pattern
     cat <(
         for arg in "${args[@]}"; do
-            if [ -f "$arg" ]; then
-                echo "$arg"
-            elif [ -d "$arg" ]; then
-                find "$arg" -type f
+            if [ -f "$curr_dir/$arg" ]; then
+                echo "$curr_dir/$arg"
+            elif [ -d "$curr_dir/$arg" ]; then
+                find "$curr_dir/$arg" -type f
             elif [ -f "$music_dir/$arg" ]; then
                 echo "$music_dir/$arg"
             elif [ -d "$music_dir/$arg" ]; then
