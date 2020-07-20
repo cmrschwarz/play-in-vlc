@@ -127,9 +127,9 @@ else
 fi
 
 if $sorted; then
-    ordering_cmd="sort -V"
+    ordering_cmd="sort -uV"
 else
-    ordering_cmd="shuf"
+    ordering_cmd="sort -u | shuf"
 fi
 
 if [ ${#args[@]} -eq 0 ] && ! $help_shown; then
