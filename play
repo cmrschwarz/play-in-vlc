@@ -120,7 +120,7 @@ else
         if $append; then
             shell_cmd="xargs -d \\\\n vlc --playlist-enque 2>/dev/null &"
         else
-            shell_cmd="(read first && xargs -d \\\\n vlc \$first --playlist-enque 2>/dev/null &)"
+            shell_cmd="(read first && xargs -d \\\\n vlc \"\$first\" --playlist-enque 2>/dev/null &)"
         fi
     fi
 
