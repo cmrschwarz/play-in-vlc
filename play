@@ -31,6 +31,7 @@ list_only=false
 append=false
 read_paths_from_file=""
 sorted=false
+patterns_found=false
 args=( "$@" )
 while [ ${#args[@]} -gt 0 ]; do
     arg="${args[0]}"
@@ -52,6 +53,7 @@ play [-f FILE] [-hansc] [PATTERNS...]
     Play all PATTERNS in VLC Media Player. 
     Patterns matching a filename play that file.
     Patterns matching a directory recursively play all songs in that directory.
+    Patterns starting with ~ are treated as a regex of paths to exclude.
     Any other patterns are interpreted as a regex for a file search.
 
     When the environment sets MUSIC_DIR, that directory is used for 
@@ -95,11 +97,18 @@ ________EOF
         echo "unknown option '$arg'"
         exit -1
     else
+        patterns_found=true
         break
     fi
     args=( "${args[@]:1}" )
 done
-
+if [ $patterns_found == false ]; then 
+    if [ $help_shown == false]; then
+        echo "invalid arguments. try --help" >&2
+        exit 1
+    fi
+    exit 0
+fi
 music_regex='^.*\.\(mp3\)\|\(opus\)\|(m4a)\|(ogg)$'
 if $list_only; then
     shell_cmd="grep '$music_regex' | xargs -d\\\\n -n 1 -I@ realpath --relative-to='.' @"
@@ -132,13 +141,32 @@ else
     ordering_cmd="sort -u | shuf"
 fi
 
-if [ ${#args[@]} -eq 0 ] && ! $help_shown; then
+has_exclusions=false
+excluded="" 
+patterns=()
+for arg in "${args[@]}"; do
+   if [[ "$arg" =~ ~.* ]]; then
+       if [ "$excluded" = "" ]; then
+           excluded="(${arg:1})"
+       else
+           excluded="$excluded|($arg)"
+       fi
+   else
+        patterns=( "${patterns[@]}" "$arg")
+   fi 
+done
+
+if [ "$excluded" != "" ]; then
+    shell_cmd="pcregrep -v '$excluded' | $shell_cmd"
+fi
+
+if [ ${#patterns[@]} -eq 0 ]; then
     #play everything in folder
     find "$search_dir" -type f | bash -c "$ordering_cmd | grep '$music_regex' | $shell_cmd"
 else 
     #play every file, everything in folder and everything matching pattern
     cat <(
-        for arg in "${args[@]}"; do
+        for arg in "${patterns[@]}"; do
             if [ -f "$curr_dir/$arg" ]; then
                 echo "$curr_dir/$arg"
             elif [ -d "$curr_dir/$arg" ]; then
@@ -148,7 +176,7 @@ else
             elif [ -d "$music_dir/$arg" ]; then
                 find "$music_dir/$arg" -type f
             else
-                find "$search_dir" -type f | grep -i -- "$arg"
+                find "$search_dir" -type f | pcregrep -i -- "$arg"
             fi
         done
     ) | bash -c "$ordering_cmd | grep '$music_regex' | $shell_cmd"
