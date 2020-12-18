@@ -103,7 +103,7 @@ ________EOF
     args=( "${args[@]:1}" )
 done
 if [ $patterns_found == false ]; then 
-    if [ $help_shown == false]; then
+    if [ $help_shown == false ]; then
         echo "invalid arguments. try --help" >&2
         exit 1
     fi
