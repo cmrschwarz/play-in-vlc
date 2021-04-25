@@ -149,7 +149,7 @@ for arg in "${args[@]}"; do
        if [ "$excluded" = "" ]; then
            excluded="(${arg:1})"
        else
-           excluded="$excluded|($arg)"
+           excluded="$excluded|(${arg:1})"
        fi
    else
         patterns=( "${patterns[@]}" "$arg")
