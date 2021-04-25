@@ -77,6 +77,10 @@ ________EOF
         sorted=true
     elif [ "$arg" = "-f" ] || [ "$arg" = "--file" ]; then
         args=( "${args[@]:1}" )
+        if [[ "${args[@]}" == "" ]]; then
+            echo "missing parameter for $arg"
+            exit -1
+        fi
         f="${args[0]}"
         if [ "$f" == "-" ]; then
             f="/dev/stdin"
