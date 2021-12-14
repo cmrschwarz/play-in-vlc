@@ -115,7 +115,7 @@ if [ $patterns_found == false ]; then
 fi
 music_regex='^.*\.\(mp3\)\|\(opus\)\|(m4a)\|(ogg)$'
 if $list_only; then
-    shell_cmd="grep '$music_regex' | xargs -d\\\\n -n 1 -I@ realpath --relative-to='.' @"
+    shell_cmd="grep '$music_regex' | xargs -d\\\\n -I@ realpath --relative-to='.' @"
 else
     if $telnet; then
         #make sure vlc is running
